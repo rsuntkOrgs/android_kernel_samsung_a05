@@ -291,11 +291,25 @@ static int __uac_clock_find_source(struct snd_usb_audio *chip,
 			return -EINVAL;
 		}
 
+		if ((size_t)&selector->baCSourceID[ret - 1] >=
+				(size_t)(chip->ctrl_intf->extra + chip->ctrl_intf->extralen)) {
+			usb_audio_err(chip,
+				"%s(): error. out of boundary, ret %d\n",
+				__func__, ret);
+			return -EINVAL;
+		}
+
 		cur = ret;
 		ret = __uac_clock_find_source(chip, fmt,
 					      selector->baCSourceID[ret - 1],
 					      visited, validate);
 		if (ret > 0) {
+			/*
+			 * For Samsung USBC Headset (AKG), setting clock selector again
+			 * will result in incorrect default clock setting problems
+			 */
+			if (chip->usb_id == USB_ID(0x04e8, 0xa051))
+				return ret;
 			err = uac_clock_selector_set_val(chip, entity_id, cur);
 			if (err < 0)
 				return err;
@@ -308,6 +322,14 @@ static int __uac_clock_find_source(struct snd_usb_audio *chip,
 		for (i = 1; i <= selector->bNrInPins; i++) {
 			if (i == cur)
 				continue;
+
+			if ((size_t)&selector->baCSourceID[i - 1] >=
+					(size_t)(chip->ctrl_intf->extra + chip->ctrl_intf->extralen)) {
+				usb_audio_err(chip,
+					"%s(): error. out of boundary, i %d\n",
+					__func__, i);
+				break;
+			}
 
 			ret = __uac_clock_find_source(chip, fmt,
 						      selector->baCSourceID[i - 1],
@@ -389,6 +411,14 @@ static int __uac3_clock_find_source(struct snd_usb_audio *chip,
 			return -EINVAL;
 		}
 
+		if ((size_t)&selector->baCSourceID[ret - 1] >=
+				(size_t)(chip->ctrl_intf->extra + chip->ctrl_intf->extralen)) {
+			usb_audio_err(chip,
+				"%s(): error. out of boundary, ret %d\n",
+				__func__, ret);
+			return -EINVAL;
+		}
+
 		cur = ret;
 		ret = __uac3_clock_find_source(chip, fmt,
 					       selector->baCSourceID[ret - 1],
@@ -408,6 +438,14 @@ static int __uac3_clock_find_source(struct snd_usb_audio *chip,
 
 			if (i == cur)
 				continue;
+
+			if ((size_t)&selector->baCSourceID[i - 1] >=
+					(size_t)(chip->ctrl_intf->extra + chip->ctrl_intf->extralen)) {
+				usb_audio_err(chip,
+					"%s(): error. out of boundary, i %d\n",
+					__func__, i);
+				break;
+			}
 
 			ret = __uac3_clock_find_source(chip, fmt,
 						       selector->baCSourceID[i - 1],
